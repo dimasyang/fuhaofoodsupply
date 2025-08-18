@@ -766,13 +766,17 @@
         const kw = (document.getElementById('q').value||'').trim().toLowerCase();
         const ownerFilter = (document.getElementById('filterOwner').value||'').trim();
         let q = db.collection('clients');
-        if(kw){
-          q = q.where('nameLC', '>=', kw).where('nameLC', '<=', kw + '\uf8ff');
+        const idPath = firebase.firestore.FieldPath.documentId();
+        const hasKw = !!kw;
+        if(hasKw){
+          q = q.where('nameLC', '>=', kw).where('nameLC', '<=', kw + '\uf8ff').orderBy('nameLC');
+        } else {
+          q = q.orderBy(idPath);
         }
         if(ownerFilter){
           q = q.where('owner', '==', ownerFilter);
         }
-        q = q.orderBy('nameLC').limit(50);
+        q = q.limit(50);
         if(lastDoc) q = q.startAfter(lastDoc);
         const snap = forceServer ? await getServerFirst(q) : await q.get();
         if(snap.empty){
@@ -793,6 +797,13 @@
       document.getElementById('btnQuery').addEventListener('click', ()=> runQuery(true, true));
       document.getElementById('btnShowAll').addEventListener('click', ()=>{ document.getElementById('q').value=''; document.getElementById('filterOwner').value=''; runQuery(true, true); });
       document.getElementById('btnLoadMore').addEventListener('click', ()=> runQuery(false, true));
+
+      
+// 直接改選「誰的客戶」就查
+document.getElementById('filterOwner').addEventListener('change', ()=> runQuery(true, true));
+// 在關鍵字輸入框按 Enter 也能查
+document.getElementById('q').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runQuery(true, true); } });
+
 
       // Totals
       async function calcGrandTotal(){
